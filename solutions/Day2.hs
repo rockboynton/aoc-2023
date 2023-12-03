@@ -6,7 +6,7 @@ import qualified Data.Map as M
 import qualified Data.ByteString.Char8 as B
 import Data.ByteString.Search as BS
 import Data.ByteString (ByteString)
-import qualified Debug.Trace as Debug
+import Data.Foldable (foldl')
 
 data Color
   = Red
@@ -28,7 +28,7 @@ colorFromStr = \case
   "red" -> Red
   "green" -> Green
   "blue" -> Blue
-  s -> error $ "could not create color from " ++ BC.unpack s
+  s -> undefined
 
 parseCube :: ByteString -> (Color, Int)
 parseCube bs = do
@@ -43,7 +43,7 @@ validHandfulForColor (Handful m) color = case m M.!? color of
 
 newtype Handful
   = Handful (M.Map Color Int)
-  deriving (Show)
+  deriving (Show, Eq, Ord)
 
 parseHandful :: ByteString -> Handful
 parseHandful bs = do
@@ -53,8 +53,11 @@ parseHandful bs = do
 validHandful :: Handful -> Bool
 validHandful handful = all (validHandfulForColor handful) colors
 
+minHandful :: Ord k => Ord a => [M.Map k a] -> M.Map k a
+minHandful = foldl' (M.unionWith max) M.empty
+
 newtype Game
-  = Game (Int, [Handful])
+  = Game (Int, [Handful], Handful)
   deriving (Show)
 
 parseGame :: BC.ByteString -> Game
@@ -65,24 +68,35 @@ parseGame bs = do
 
   let handfulls = BS.split "; " setStr
   let handfulls' = map parseHandful handfulls
+  let handfulls'' = map (\(Handful m) -> m) handfulls'
+  let maxes = minHandful handfulls''
 
-  Game (gameIdx, handfulls')
+  Game (gameIdx, handfulls', Handful maxes)
 
 possibleGame :: Game -> Bool
-possibleGame (Game (_, handfulls)) = all validHandful handfulls
+possibleGame (Game (_, handfulls, _)) = all validHandful handfulls
 
 gameIdx :: Game -> Int
-gameIdx (Game (idx, _)) = idx
+gameIdx (Game (idx, _, _)) = idx
 
-part1 :: IO ()
-part1 = do
-  contents <- BC.readFile "input/day2/input.txt"
-  let games = BC.lines contents
-  let games' = map parseGame games
-  let possibleGames = filter possibleGame games'
+gamePower :: Game -> Int
+gamePower (Game (_, _, Handful maxCubes)) = product $ M.elems maxCubes
+
+part1 :: [Game] -> IO ()
+part1 games= do
+  let possibleGames = filter possibleGame games
   let solution = sum $ map gameIdx possibleGames
+  print solution
+
+part2 :: [Game] -> IO ()
+part2 games = do
+  let solution = sum $ map gamePower games
   print solution
 
 main :: IO ()
 main = do
-  part1
+  contents <- BC.readFile "input/day2/input.txt"
+  let games = BC.lines contents
+  let games' = map parseGame games
+  part1 games'
+  part2 games'
