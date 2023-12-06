@@ -3,6 +3,7 @@
 
 import Data.Char
 import qualified Data.Vector as V
+import Data.Maybe (mapMaybe)
 
 data Schematic
   = Schematic {
@@ -77,6 +78,29 @@ getValidNeighborValues :: Schematic -> Pos -> [Char]
 getValidNeighborValues schem pos =
     [schem.grid V.! x V.! y | (x, y) <- validNeighbors schem pos]
 
+gearRatio :: [SchematicNumber] -> Pos -> Maybe Int
+gearRatio numbers pos = if length adjacentNumbers /= 2 then Nothing else Just (product (map (.value) adjacentNumbers))
+  where
+    adjacentNumbers :: [SchematicNumber]
+    adjacentNumbers = filter (adjacent pos) numbers
+    adjacent :: Pos -> SchematicNumber -> Bool
+    adjacent (x, y) n =
+      n.row >= y - 1 &&
+      n.row <= y + 1 &&
+      x >= n.startCol - 1 &&
+      x <= n.endCol + 1
+
+parseSymbols :: Schematic -> [Pos]
+parseSymbols input = concatMap parseSymbolsInLine indexedLines where
+    lines = V.toList input.grid
+    indexedLines = zip [0..] lines
+
+parseSymbolsInLine :: (Int, V.Vector Char) -> [Pos]
+parseSymbolsInLine (y, line) = mapMaybe maybeStar indexedChars where
+    chars = V.toList line
+    indexedChars = zip [0..] chars
+    maybeStar (x, c) = if c == '*' then Just (x, y) else Nothing
+
 main :: IO ()
 main = do
   contents <- readFile "input/day3/input.txt"
@@ -85,3 +109,7 @@ main = do
   let filtered = filter (isPartNumber schematic) numbers
   let nums = map (.value) filtered
   print $ sum nums
+
+  let stars = parseSymbols schematic
+  let solution = sum (mapMaybe (gearRatio numbers) stars)
+  print solution
