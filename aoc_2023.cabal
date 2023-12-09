@@ -46,3 +46,9 @@ executable day4
   hs-source-dirs: solutions
   main-is:        Day4.hs
   ghc-options:    -threaded -rtsopts -with-rtsopts=-N
+
+executable day6
+  import:         common-options
+  hs-source-dirs: solutions
+  main-is:        Day6.hs
+  ghc-options:    -threaded -rtsopts -with-rtsopts=-N
