@@ -40,9 +40,16 @@ data Range
   }
   deriving Show
 
-parseInput :: [T.Text] -> Almanac
-parseInput (x:xs) = do
-  let seeds = read . T.unpack <$> drop 1 (T.words x)
+data SeedEncoding
+  = Individual
+  | Pairs
+
+parseInput :: [T.Text] -> SeedEncoding -> Almanac
+parseInput (x:xs) enc = do
+  let seedNums = read . T.unpack <$> drop 1 (T.words x)
+  let seeds = case enc of
+        Individual -> seedNums
+        Pairs -> allSeeds seedNums
   let ys = splitOn [""] (drop 1 xs)
   let pairs = map mkCategoryMap ys
 
@@ -53,7 +60,18 @@ parseInput (x:xs) = do
   --   (key, CategoryMap ranges)
   let mappings = M.fromList pairs
   Almanac{..}
-parseInput [] = error "bad input"
+parseInput [] _ = error "bad input"
+
+allSeeds :: [Int] -> [Int]
+allSeeds xs = concatMap toRange (chunks xs)
+
+chunks :: [Int] -> [(Int, Int)]
+chunks []         = []
+chunks (x:y:rest) = (x, y) : chunks rest
+chunks _          = error "List length must be even"
+
+toRange :: (Int, Int) -> [Int]
+toRange (start, len) = [start..start + len]
 
 strToKey :: T.Text -> (Category, Category)
 strToKey "humidity-to-location map:" = (Humidity, Location)
@@ -83,19 +101,12 @@ mkCategoryMap _ = error "bad input"
 main :: IO ()
 main = do
   contents <- T.readFile "input/day5/input.txt"
-  let almanac = parseInput $ T.lines contents
 
-  let gm = getMapping almanac.mappings
-  print
-    . minimum
-    . map ( gm (Humidity, Location)
-          . gm (Temperature, Humidity)
-          . gm (Light, Temperature)
-          . gm (Water, Light)
-          . gm (Fertilizer, Water)
-          . gm (Soil, Fertilizer)
-          . gm (Seed, Soil))
-    $ almanac.seeds
+  let almanac = parseInput (T.lines contents) Individual
+  print . minLoc $ almanac
+
+  let almanac' = parseInput (T.lines contents) Pairs
+  print . minLoc $ almanac'
 
 getMapping :: M.Map (Category, Category) CategoryMap -> (Category, Category) -> Int -> Int
 getMapping m k v = do
@@ -108,3 +119,17 @@ getMapping m k v = do
       if inRange (x.srcStart, x.srcStart + x.len) v
         then v + (x.destStart - x.srcStart)
         else go xs
+
+minLoc :: Almanac -> Int
+minLoc almanac =
+  minimum
+    . map ( gm (Humidity, Location)
+          . gm (Temperature, Humidity)
+          . gm (Light, Temperature)
+          . gm (Water, Light)
+          . gm (Fertilizer, Water)
+          . gm (Soil, Fertilizer)
+          . gm (Seed, Soil))
+    $ almanac.seeds
+  where
+    gm = getMapping almanac.mappings
