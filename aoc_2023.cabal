@@ -17,8 +17,10 @@ common common-options
                   , QuickCheck
                   , vector
                   , text
+                  , split
   default-language: Haskell2010
   ghc-options:
+    -O2
     -Wall -Wcompat -Widentities -Wincomplete-uni-patterns
     -Wincomplete-record-updates -Wredundant-constraints
     -fhide-source-paths -Wpartial-fields
@@ -45,6 +47,12 @@ executable day4
   import:         common-options
   hs-source-dirs: solutions
   main-is:        Day4.hs
+  ghc-options:    -threaded -rtsopts -with-rtsopts=-N
+
+executable day5
+  import:         common-options
+  hs-source-dirs: solutions
+  main-is:        Day5.hs
   ghc-options:    -threaded -rtsopts -with-rtsopts=-N
 
 executable day6

@@ -2,7 +2,6 @@
 
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
-import Data.List ( findIndices )
 
 data Race = Race
   { time :: Int
@@ -10,27 +9,23 @@ data Race = Race
   }
   deriving Show
 
-mkRace :: Int -> Int -> Race
-mkRace t d = Race
-  { time = t
-  , distance = d
-  }
-
 waysToBeat :: Race -> Int
-waysToBeat r = length $ findIndices (raceWins r) [0..r.distance + 1]
+waysToBeat r = length $ filter (raceWins r) [0..r.time]
 
 raceWins :: Race -> Int -> Bool
-raceWins r timeHeld = do
-  let speed = timeHeld
-  let remainingTime = r.time - timeHeld
-  let distanceTraveled = speed * remainingTime
-  distanceTraveled > r.distance
+raceWins r timeHeld = distanceTraveled > r.distance
+  where
+    speed = timeHeld
+    remainingTime = r.time - timeHeld
+    distanceTraveled = speed * remainingTime
 
 main :: IO ()
 main = do
   contents <- T.readFile "input/day6/input.txt"
   let [times', distances'] = map (read . T.unpack) . T.words . flip (!!) 1 . T.split (==':') <$> T.lines contents
-
-  let races = zipWith mkRace times' distances'
-  print races
+  let races = zipWith Race times' distances'
   print . product . map waysToBeat $ races
+
+  let [time, distance] = read . T.unpack . T.concat . T.words . flip (!!) 1 . T.split (==':') <$> T.lines contents
+  let race = Race time distance
+  print $ waysToBeat race
