@@ -26,7 +26,6 @@ instance Ord HandBidPair where
   compare :: HandBidPair -> HandBidPair -> Ordering
   compare (HandBidPair l) (HandBidPair r) = compare (fst l) (fst r)
 
-
 mkGame :: [T.Text] -> Game
 mkGame = Game . map (mkHandBidPair . T.words)
   where
@@ -48,7 +47,8 @@ data Hand
 mkHand :: [Char] -> Hand
 mkHand handStr = do
   let cards = map mkCard handStr
-  let handType = getHandType cards
+  let possibleHandTypes = map (\c -> map (\x -> if x == J then c else x) cards) $ enumFromTo C2 A
+  let handType = (maximum . map getHandType) possibleHandTypes
   Hand{..}
 
 getHandType :: [Card] -> HandType
@@ -80,7 +80,8 @@ hasFiveOfAKind :: [Card] -> Bool
 hasFiveOfAKind hand = 5 `elem` map length (group $ sort hand)
 
 data Card
-  = C2
+  = J
+  | C2
   | C3
   | C4
   | C5
@@ -89,11 +90,10 @@ data Card
   | C8
   | C9
   | T
-  | J
   | Q
   | K
   | A
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, Enum)
 
 mkCard :: Char -> Card
 mkCard = \case
